@@ -5,6 +5,7 @@
 	# Define a list of config options that can be set by the user, using
 	# `set -g @powertab-key val` in their tmux.conf to set `key` to `val`.
 	options="
+        position
 		powerline
 		pathname
 		foreground
@@ -97,13 +98,28 @@
 	fi
 # }}}
 
+
 # Powerline tabs {{{
+    # Check whether to put the tab bar at the top or bottom (default: top)
+    if [ -z "$position"] || [ "$position" = 'top' ]
+    then
+        status_position='top'
+    else
+        status_position='bottom'
+    fi
+
 	# Check whether to use powerline symbols. These generally look nicer
 	# if you use a powerline font, but may not work everywhere.
 	if [ "$powerline" = 'on' ]
 	then
-		powerline_l=""
-		powerline_r=""
+        if [ "$status_position" = 'top' ]
+        then
+            powerline_l=""
+            powerline_r=""
+        else
+            powerline_l=""
+            powerline_r=""
+        fi
 	else
 		powerline_l=''
 		powerline_r=''
@@ -118,25 +134,34 @@
 	fi
 	
 	# Prepare tab design variables.
-	tab_0l="#[fg=$statuslineright_fg,bg=$statuslineright_bg]"
-	tab_1l="#[bg=$statusline,fg=$unfocustab_bg]$powerline_l#[bg=$unfocustab_bg,fg=$unfocustab_fg]"
-	tab_1r="#[bg=$statusline,fg=$unfocustab_bg]$powerline_r"
-	tab_2l="#[bg=$statusline,fg=$focustab_bg]$powerline_l#[bg=$focustab_bg,fg=$focustab_fg]"
-	tab_2r="#[bg=$statusline,fg=$focustab_bg]$powerline_r"
+    if [ "$status_position" = 'top' ]
+    then
+        tab_0l="#[fg=$statuslineright_fg,bg=$statuslineright_bg]"
+        tab_1l="#[bg=$statusline,fg=$unfocustab_bg]$powerline_l#[bg=$unfocustab_bg,fg=$unfocustab_fg]"
+        tab_1r="#[bg=$statusline,fg=$unfocustab_bg]$powerline_r"
+        tab_2l="#[bg=$statusline,fg=$focustab_bg]$powerline_l#[bg=$focustab_bg,fg=$focustab_fg]"
+        tab_2r="#[bg=$statusline,fg=$focustab_bg]$powerline_r"
+    else
+        tab_0l="#[fg=$statuslineright_fg,bg=$statuslineright_bg]"
+        tab_1l="#[fg=$statusline,bg=$unfocustab_bg]$powerline_l#[bg=$unfocustab_bg,fg=$unfocustab_fg]"
+        tab_1r="#[fg=$statusline,bg=$unfocustab_bg]$powerline_r"
+        tab_2l="#[fg=$statusline,bg=$focustab_bg]$powerline_l#[bg=$focustab_bg,fg=$focustab_fg]"
+        tab_2r="#[fg=$statusline,bg=$focustab_bg]$powerline_r"
+    fi
 # }}}
 
 # Tmux settings {{{
 	# Statusline (general).
-	tmux set -g status-position top
+	tmux set -g status-position $status_position
 	tmux set -g status-justify left
 	tmux set-option -g status-style "bg=$statusline"
 	
 	# Statusline (left).
-	tmux set -g status-left " "
+	tmux set -g status-left "#[fg=$statuslineright_fg] "
 	
 	# Statusline (right).
-	tmux set -g status-right-length 24
-	tmux set -g status-right "$tab_0l #H#{?#{==:#S,0},,: #S} "
+    # FIXME adding the existing status-right in front makes it double up on reload. do the placeholder thing? or remove this?
+    tmux set -g status-right "$(tmux show-option -gqv status-right) $tab_0l #H#{?#{==:#S,0},,: #S} "
 	
 	# Statusline (center).
 	tmux setw -g window-status-separator ""
